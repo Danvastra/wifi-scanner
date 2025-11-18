@@ -172,28 +172,91 @@ class SpeedTestThread(QThread):
 # ================================
 class GeoIPThread(QThread):
     result_signal = pyqtSignal(dict)
-    def run(self):
+
+    def get_json(self, url):
         try:
-            res = requests.get("https://ipapi.co/json/").json()
-            info = {
-                "ip": res.get("ip"),
-                "city": res.get("city"),
-                "region": res.get("region"),
-                "country": res.get("country_name"),
-                "timezone": res.get("timezone")
-            }
-            # waktu lokal berdasarkan timezone API
-            tz = res.get("timezone")
-            # jika timezone tersedia, hitung waktu sekarang di timezone tersebut
-            if tz:
-                local_time = datetime.now(datetime.utcnow().astimezone().tzinfo).astimezone().strftime("%Y-%m-%d %H:%M:%S")
-                # catatan: pendekatan ini tidak benar-benar menghitung timezone, tapi cukup untuk display dasar
-                info["local_time"] = local_time
+            return requests.get(url, timeout=5).json()
+        except:
+            return None
+
+    def run(self):
+        data = None
+
+        # 1. Coba ipapi.co
+        data = self.get_json("https://ipapi.co/json/")
+        if data and data.get("ip"):
+            source = "ipapi"
+        else:
+            # 2. Fallback ipinfo.io
+            data = self.get_json("https://ipinfo.io/json")
+            if data and data.get("ip"):
+                source = "ipinfo"
             else:
-                info["local_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.result_signal.emit(info)
-        except Exception as e:
-            self.result_signal.emit({"error": str(e)})
+                # 3. Fallback api.seeip.org
+                data = self.get_json("https://ip.seeip.org/geoip")
+                if data and data.get("ip"):
+                    source = "seeip"
+                else:
+                    # 4. Fallback minimal: ifconfig.me
+                    try:
+                        ip = requests.get("https://ifconfig.me", timeout=5).text
+                        data = {"ip": ip, "city": "-", "region": "-", "country": "-", "timezone": None}
+                        source = "ifconfig"
+                    except:
+                        self.result_signal.emit({"error": "Gagal mendeteksi IP publik"})
+                        return
+
+        # ==========================
+        # Normalisasi semua API
+        # ==========================
+        ip = data.get("ip")
+
+        if "ipapi" in source:
+            city = data.get("city")
+            region = data.get("region")
+            country = data.get("country_name")
+            tz = data.get("timezone")
+
+        elif "ipinfo" in source:
+            city = data.get("city")
+            region = data.get("region")
+            country = data.get("country")
+            tz = data.get("timezone")
+
+        elif "seeip" in source:
+            city = data.get("city")
+            region = data.get("region_name")
+            country = data.get("country")
+            tz = data.get("timezone")
+
+        else:  # fallback
+            city = "-"
+            region = "-"
+            country = "-"
+            tz = None
+
+        # ==========================
+        # Hitung waktu lokal
+        # ==========================
+        try:
+            if tz:
+                import pytz
+                zone = pytz.timezone(tz)
+                lt = datetime.now(zone).strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                lt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        except:
+            lt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        self.result_signal.emit({
+            "ip": ip,
+            "city": city,
+            "region": region,
+            "country": country,
+            "timezone": tz,
+            "local_time": lt
+        })
+
 
 # ================================
 # GUI
@@ -496,3 +559,4 @@ if __name__ == "__main__":
     gui = WifiScannerGUI()
     gui.show()
     sys.exit(app.exec_())
+
