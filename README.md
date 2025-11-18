@@ -3,6 +3,16 @@
 NAME APPS: WiFi Scanner v5.5
 AUTHOR: DANVASTRA
 
+# HAS BEEN TESTED ON :
+1. Windows 10
+2. Kali Linux
+
+# HOW TO USE THE TOOLS?
+1. git clone https://github.com/Danvastra/wifi-scanner
+2. ls
+3. pip install -r requirements.txt
+4. python3 main.py
+
 # Program Functionality
 This program scans WiFi networks around the user, displays connection information, signal quality, security, and makes it easy for users to monitor, save, and analyze WiFi through an interactive GUI display.
 
