@@ -264,13 +264,13 @@ class GeoIPThread(QThread):
 class WifiScannerGUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("WiFi Scanner v5.4 by Danvastra")
+        self.setWindowTitle("WiFi Scanner v5.5 by Danvastra")
         self.setGeometry(50,50,1100,780)
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
         # Title
-        self.title = QLabel("WiFi Scanner v5.4 by Danvastra")
+        self.title = QLabel("WiFi Scanner v5.5 by Danvastra")
         self.title.setAlignment(Qt.AlignCenter)
         self.title.setStyleSheet("font-size:22px;font-weight:bold;")
         self.layout.addWidget(self.title)
@@ -559,4 +559,5 @@ if __name__ == "__main__":
     gui = WifiScannerGUI()
     gui.show()
     sys.exit(app.exec_())
+
 
